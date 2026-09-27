@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blogapp-frontend
+  namespace: blogapp
+  labels:
+    app: blogapp-frontend
+spec:
+  replicas: 2
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: blogapp-frontend
+
+  template:
+    metadata:
+      labels:
+        app: blogapp-frontend
+
+    spec:
+      containers:
+        - name: frontend
+          image: 354596761006.dkr.ecr.ap-south-1.amazonaws.com/blogapp-frontend:sha-420de1b
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blogapp-frontend
+  namespace: blogapp
+  labels:
+    app: blogapp-frontend
+spec:
+  type: ClusterIP
+
+  selector:
+    app: blogapp-frontend
+
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
